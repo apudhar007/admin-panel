@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { usePathname } from "next/navigation";
+import { useState, useEffect } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import {
   HomeIcon,
   UsersIcon,
@@ -9,10 +9,23 @@ import {
   Cog6ToothIcon,
   Bars3Icon
 } from "@heroicons/react/24/outline";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "../../firebaseConfig";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        router.push("/login");
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const menuItems = [
     { name: "Dashboard", href: "/dashboard", icon: <HomeIcon className="w-5 h-5" /> },
