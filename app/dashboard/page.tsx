@@ -24,7 +24,7 @@ export default function DashboardPage() {
     <div>
       <h1 className="text-2xl font-bold mb-4">Users List</h1>
 
-      <div className="bg-white shadow rounded p-4">
+      <div className="bg-white shadow rounded p-4 text-gray-900">
         {users.map(user => (
           <div key={user.id} className="border-b py-2">
             <p><strong>Name:</strong> {user.name}</p>
