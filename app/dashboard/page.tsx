@@ -257,15 +257,22 @@ export default function DashboardPage() {
             value={contentText}
             onChange={(e) => setContentText(e.target.value)}
           />
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => setContentFile(e.target.files?.[0] || null)}
-            className="mt-2"
-          />
+          {/* styled file input with label for better visibility */}
+          <label className="mt-2 inline-block">
+            <span className="px-3 py-2 bg-gray-200 text-gray-700 rounded cursor-pointer hover:bg-gray-300">
+              Choose Image
+            </span>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => setContentFile(e.target.files?.[0] || null)}
+              className="hidden"
+            />
+            {contentFile && <span className="ml-2 text-sm">{contentFile.name}</span>}
+          </label>
           <button
-            className="bg-green-600 text-white p-2 rounded hover:bg-green-700 mt-2"
-            disabled={uploading}
+            className="bg-green-600 text-white p-2 rounded hover:bg-green-700 mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={uploading || !contentFile}
           >
             {uploading ? "Uploading…" : "Upload"}
           </button>
