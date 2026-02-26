@@ -61,6 +61,7 @@ export default function DashboardPage() {
   const [contentFile, setContentFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [cloudinaryImageUrl, setCloudinaryImageUrl] = useState("");
 
   // Fetch users from Firestore
   const fetchUsers = async () => {
@@ -122,22 +123,48 @@ export default function DashboardPage() {
     fetchUsers();
   };
 
+  // Secure Cloudinary upload handler
+  const handleImageUpload = async (file: File) => {
+    const reader = new FileReader();
+
+    reader.onloadend = async () => {
+      const base64 = reader.result;
+
+      try {
+        const res = await fetch("/api/upload", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ image: base64 }),
+        });
+
+        const data = await res.json();
+
+        if (data.url) {
+          setCloudinaryImageUrl(data.url);
+          console.log("Image uploaded to Cloudinary:", data.url);
+        }
+      } catch (error) {
+        console.error("Upload error:", error);
+      }
+    };
+
+    reader.readAsDataURL(file);
+  };
+
   const handleContentUpload = async (e: any) => {
     e.preventDefault();
-    if (!contentText || !contentFile) return;
+    if (!contentText || !cloudinaryImageUrl) return;
     setUploading(true);
     setUploadSuccess(false);
     try {
-      const fileRef = storageRef(storage, `uploads/${Date.now()}_${contentFile.name}`);
-      await uploadBytes(fileRef, contentFile);
-      const url = await getDownloadURL(fileRef);
       await addDoc(collection(db, "contents"), {
         text: contentText,
-        imageUrl: url,
+        imageUrl: cloudinaryImageUrl,
         createdAt: new Date(),
       });
       setContentText("");
       setContentFile(null);
+      setCloudinaryImageUrl("");
       setUploadSuccess(true);
       setTimeout(() => setUploadSuccess(false), 3000); // auto-hide after 3s
       fetchContents();
@@ -274,14 +301,20 @@ export default function DashboardPage() {
             <input
               type="file"
               accept="image/*"
-              onChange={(e) => setContentFile(e.target.files?.[0] || null)}
+              onChange={(e) => {
+                if (e.target.files) {
+                  const file = e.target.files[0];
+                  setContentFile(file);
+                  handleImageUpload(file);
+                }
+              }}
               className="hidden"
             />
             {contentFile && <span className="ml-2 text-sm">{contentFile.name}</span>}
           </label>
           <button
             className="bg-green-600 text-white p-2 rounded hover:bg-green-700 mt-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            disabled={uploading || !contentFile}
+            disabled={uploading || !cloudinaryImageUrl}
             type="submit"
           >
             {uploading ? (
