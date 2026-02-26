@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../../firebaseConfig";
+import { auth, db } from "../../firebaseConfig";
+import { doc, setDoc } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
@@ -14,7 +15,16 @@ export default function LoginPage() {
   const handleLogin = async (e: any) => {
     e.preventDefault();
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const result = await signInWithEmailAndPassword(auth, email, password);
+      // mark user active and record last login time
+      const user = result.user;
+      if (user) {
+        await setDoc(doc(db, "users", user.uid), {
+          email: user.email,
+          isActive: true,
+          lastActive: new Date(),
+        }, { merge: true });
+      }
       router.push("/dashboard");
     } catch (err: any) {
       setError("Invalid credentials");
