@@ -60,6 +60,7 @@ export default function DashboardPage() {
   const [contentText, setContentText] = useState("");
   const [contentFile, setContentFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadSuccess, setUploadSuccess] = useState(false);
 
   // Fetch users from Firestore
   const fetchUsers = async () => {
@@ -125,18 +126,26 @@ export default function DashboardPage() {
     e.preventDefault();
     if (!contentText || !contentFile) return;
     setUploading(true);
-    const fileRef = storageRef(storage, `uploads/${Date.now()}_${contentFile.name}`);
-    await uploadBytes(fileRef, contentFile);
-    const url = await getDownloadURL(fileRef);
-    await addDoc(collection(db, "contents"), {
-      text: contentText,
-      imageUrl: url,
-      createdAt: new Date(),
-    });
-    setContentText("");
-    setContentFile(null);
-    setUploading(false);
-    fetchContents();
+    setUploadSuccess(false);
+    try {
+      const fileRef = storageRef(storage, `uploads/${Date.now()}_${contentFile.name}`);
+      await uploadBytes(fileRef, contentFile);
+      const url = await getDownloadURL(fileRef);
+      await addDoc(collection(db, "contents"), {
+        text: contentText,
+        imageUrl: url,
+        createdAt: new Date(),
+      });
+      setContentText("");
+      setContentFile(null);
+      setUploadSuccess(true);
+      setTimeout(() => setUploadSuccess(false), 3000); // auto-hide after 3s
+      fetchContents();
+    } catch (error) {
+      console.error("Upload error:", error);
+    } finally {
+      setUploading(false);
+    }
   };
 
   const deleteContent = async (id: string) => {
@@ -271,11 +280,26 @@ export default function DashboardPage() {
             {contentFile && <span className="ml-2 text-sm">{contentFile.name}</span>}
           </label>
           <button
-            className="bg-green-600 text-white p-2 rounded hover:bg-green-700 mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-green-600 text-white p-2 rounded hover:bg-green-700 mt-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             disabled={uploading || !contentFile}
+            type="submit"
           >
-            {uploading ? "Uploading…" : "Upload"}
+            {uploading ? (
+              <>
+                <div className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+                Uploading...
+              </>
+            ) : (
+              "Upload"
+            )}
           </button>
+
+          {uploadSuccess && (
+            <div className="mt-2 p-3 bg-green-100 border border-green-400 rounded flex items-center gap-2">
+              <span className="text-green-600">✓</span>
+              <span className="text-green-700 font-semibold">Upload successful! Content added.</span>
+            </div>
+          )}
         </form>
 
         <div className="mt-6">
